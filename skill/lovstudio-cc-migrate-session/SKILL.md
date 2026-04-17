@@ -1,11 +1,11 @@
 ---
-name: cc-migrate-session
+name: lovstudio:cc-migrate-session
 description: Migrate Claude Code session history when a project folder has moved. Trigger when the user says the project has moved/relocated/been renamed and mentions a new or old absolute path — in Chinese ("项目已经迁移到 X", "我把项目搬到了 X", "这个项目原来在 X", "换到 X 了") or English ("project moved to X", "relocated the repo to X", "this project used to be at X", "I renamed the folder"). Also trigger on: "claude --resume 找不到旧 session", "session history lost after moving folder", "恢复旧会话". Do NOT trigger for renames internal to a project (file/function renames), only for the project root directory itself.
 license: MIT
 compatibility: claude-code
 ---
 
-# cc-migrate-session
+# lovstudio:cc-migrate-session
 
 Moves the session store `~/.claude/projects/<slug>/` from the old path-slug to the new one and rewrites every `"cwd"` field inside the jsonl files. After this, `claude --resume` from the new directory will see all prior sessions.
 

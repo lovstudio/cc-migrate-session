@@ -71,10 +71,10 @@ Each jsonl line also embeds `"cwd": "<absolute path>"`. Both the dir name **and*
 
 ## Companion CC skill
 
-The `skill/cc-migrate-session/` dir in this repo is a Claude Code skill. Symlink it:
+The `skill/lovstudio-cc-migrate-session/` dir in this repo is a Claude Code skill (`lovstudio:cc-migrate-session`). Symlink it:
 
 ```bash
-ln -s $(pwd)/skill/cc-migrate-session ~/.claude/skills/cc-migrate-session
+ln -s $(pwd)/skill/lovstudio-cc-migrate-session ~/.claude/skills/lovstudio-cc-migrate-session
 ```
 
 Then when you tell Claude "I moved this project to /new/path" or "this project used to be at /old/path", CC will auto-invoke this CLI for you.
