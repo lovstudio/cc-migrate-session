@@ -1,6 +1,6 @@
 {
   "name": "@lovstudio/cc-migrate-session",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Migrate Claude Code sessions when a project folder moves. Rewrites ~/.claude/projects/<slug>/*.jsonl cwd fields and renames the slug directory.",
   "keywords": ["claude-code", "cli", "migration", "session", "lovstudio"],
   "license": "MIT",

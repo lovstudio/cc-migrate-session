@@ -1,6 +1,12 @@
 ---
 name: lovstudio:cc-migrate-session
-description: Recover Claude Code session history after a project folder has been moved or renamed on the filesystem. Use when the user mentions an old path ("本项目之前是在 X", "这个项目原来在 X", "我把项目搬到了 X", "项目迁移到了 X", "this project used to be at X", "moved the repo to X", "renamed the folder") and notes that `claude --resume` or `cc --resume` no longer shows prior sessions / history is missing / 历史找不到 / 恢复旧会话. Also use when the user explicitly asks to migrate or relocate CC session storage between two paths. Does NOT apply to file/function/branch renames — only the project root directory moving.
+description: Recover Claude Code session history lost after a project folder moved or was renamed. 项目迁移后 claude --resume / cc --resume 找不到历史会话时用此 skill 迁移 session 存储。
+when_to_use: |
+  User mentions project moved/renamed AND old or new absolute path. Examples:
+  - "本项目之前是在 X" / "这个项目原来在 X" / "我把项目搬到了 X" / "项目迁移到了 X"
+  - "this project used to be at X" / "moved the repo to X" / "renamed the folder"
+  - "claude --resume 找不到" / "cc --resume 找不到历史" / "恢复旧会话"
+  NOT for file/function/branch renames — only project root dir moves.
 license: MIT
 compatibility: claude-code
 ---

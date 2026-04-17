@@ -129,15 +129,27 @@ function rewriteJsonl(content: string, fromPath: string, toPath: string): { out:
   return { out: out.join("\n"), rewrote };
 }
 
+// Copy src → dst and preserve each file/dir's atime+mtime. Preserving mtime
+// matters because `claude --resume` orders sessions by file mtime — without
+// this, every migrated session appears "newer" than native sessions in the
+// destination slug dir.
 function copyDir(src: string, dst: string): void {
   fs.mkdirSync(dst, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     const s = path.join(src, entry.name);
     const d = path.join(dst, entry.name);
-    if (entry.isDirectory()) copyDir(s, d);
-    else if (entry.isSymbolicLink()) fs.symlinkSync(fs.readlinkSync(s), d);
-    else fs.copyFileSync(s, d);
+    if (entry.isDirectory()) {
+      copyDir(s, d);
+    } else if (entry.isSymbolicLink()) {
+      fs.symlinkSync(fs.readlinkSync(s), d);
+    } else {
+      fs.copyFileSync(s, d);
+      const st = fs.statSync(s);
+      fs.utimesSync(d, st.atime, st.mtime);
+    }
   }
+  const st = fs.statSync(src);
+  try { fs.utimesSync(dst, st.atime, st.mtime); } catch { /* dir mtime best-effort */ }
 }
 
 async function prompt(question: string): Promise<string> {
@@ -293,6 +305,10 @@ async function main(): Promise<void> {
     const content = fs.readFileSync(s.file, "utf8");
     const { out, rewrote } = rewriteJsonl(content, from, to);
     fs.writeFileSync(dst, out);
+    // Preserve mtime so `claude --resume` orders sessions by actual
+    // session recency, not by migration time.
+    const srcStat = fs.statSync(s.file);
+    fs.utimesSync(dst, srcStat.atime, srcStat.mtime);
     totalRewrites += rewrote;
     results.push({ file: path.basename(s.file), rewrote });
   }
