@@ -1,6 +1,28 @@
 ---
 name: lovstudio:cc-migrate-session
-description: Migrate Claude Code session history when a project folder has moved. Trigger when the user says the project has moved/relocated/been renamed and mentions a new or old absolute path — in Chinese ("项目已经迁移到 X", "我把项目搬到了 X", "这个项目原来在 X", "换到 X 了") or English ("project moved to X", "relocated the repo to X", "this project used to be at X", "I renamed the folder"). Also trigger on: "claude --resume 找不到旧 session", "session history lost after moving folder", "恢复旧会话". Do NOT trigger for renames internal to a project (file/function renames), only for the project root directory itself.
+description: |
+  Migrate Claude Code session history when a project folder has moved, been renamed, or the user notices `claude --resume` (or `cc --resume`) no longer shows their history. ALWAYS trigger this skill when the user's message mentions any of these situations, even if phrased indirectly.
+
+  Trigger phrases — Chinese (match any of these shapes, including near-synonyms):
+    - 本项目/这个项目/这个仓库 + 之前是在/原来在/原本在/以前在/以前是在/本来在/最早在 + <path>
+    - 我把(这个)项目/仓库 + 搬到/迁移到/移动到/挪到/换到 + <path>
+    - (项目/文件夹)从 X 移动到/搬到/迁到 Y
+    - 换(了)位置了 / 改(了)地方了 / 重命名(了)
+    - claude --resume / cc --resume / --resume 找不到(旧/之前的) session/历史/会话/记录
+    - 恢复(旧/之前的) session/历史/会话
+    - 历史(会话)丢了/不见了/没有了
+    - 移(动/走)了(文件夹/项目)之后 + (session/历史)没了/看不到了
+  Trigger phrases — English (match any of these shapes, including near-synonyms):
+    - this project (was|used to be|was previously|originally was|is originally) at <path>
+    - I (moved|relocated|renamed) (the|this) (project|repo|folder) (from X )?to Y
+    - my sessions are gone after moving the folder
+    - `claude --resume` / `cc --resume` doesn't show my history
+    - can't find (old|previous) sessions
+    - recover / restore (old|previous) Claude Code sessions
+
+  ALSO TRIGGER when the user mentions an old and a new absolute path in the same breath and laments about missing session history — even without the exact phrases above. Ask for the missing side if only one path is given.
+
+  DO NOT trigger for: file renames, function renames, branch renames, git history rewrites — only for the project ROOT directory having moved on the filesystem.
 license: MIT
 compatibility: claude-code
 ---
