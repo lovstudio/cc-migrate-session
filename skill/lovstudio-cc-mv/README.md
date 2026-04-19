@@ -1,40 +1,43 @@
-# lovstudio:cc-migrate-session (skill)
+# lovstudio:cc-mv (skill)
 
-Claude Code skill that detects "project folder moved" situations and runs `@lovstudio/cc-migrate-session` (the npm CLI) to relocate the session history so `claude --resume` keeps working.
+Claude Code skill that moves a project folder and migrates all its CC state in one shot — session store, prompt-up-arrow history, and running-session records — so `claude --resume` keeps working after the move.
 
-Invoked as `/lovstudio:cc-migrate-session` (or auto-triggered on matching phrases).
+Invoked as `/lovstudio:cc-mv` (or auto-triggered on matching phrases). Wraps `@lovstudio/cc-mv` (the npm CLI).
 
 ## Install
 
-Symlink this directory into `~/.claude/skills/` (note: directory name must be `lovstudio-cc-migrate-session`):
+Symlink this directory into `~/.claude/skills/`:
 
 ```bash
-ln -s ~/lovstudio/coding/cc-migrate-session/skill/lovstudio-cc-migrate-session \
-      ~/.claude/skills/lovstudio-cc-migrate-session
+ln -s ~/lovstudio/coding/cc-mv/skill/lovstudio-cc-mv \
+      ~/.claude/skills/lovstudio-cc-mv
 ```
 
-Then restart Claude Code. The skill will be auto-triggered whenever you mention a project move.
+Then restart Claude Code.
 
 ## Trigger phrases
 
-Chinese:
-- 项目已经迁移到 /new/path
-- 我把这个项目搬到了 /new/path
-- 这个项目原来在 /old/path
-- 换到 /new/path 了
+Prospective move (we do the mv for you):
+- 把这个项目移到 /new/path
+- 把项目从 /a 搬到 /b
+- rename this folder to /new/path
+- mv this repo to /new/path
 
-English:
-- this project moved to /new/path
-- I relocated the repo to /new/path
+Post-move recovery (folder already moved; use `--no-mv`):
+- 项目已经迁移到 /new/path
+- 这个项目原来在 /old/path
 - this project used to be at /old/path
-- I renamed the folder from foo to bar
+- claude --resume 找不到历史
 
 ## What it does
 
-1. Parses FROM and TO paths from the conversation (asks if ambiguous)
-2. Runs `npx @lovstudio/cc-migrate-session <FROM> <TO> --dry-run --json` to preview
-3. Shows you N sessions that will be migrated
-4. On confirmation, runs with `--yes --json`, which copies the slug dir and rewrites every `"cwd"` line in the jsonl files
+1. Parses FROM and TO from the conversation (asks if ambiguous)
+2. Runs `npx @lovstudio/cc-mv <FROM> <TO> --dry-run --json` to preview
+3. Shows affected slug count (including sub-dirs with their own CC history)
+4. On confirmation, runs with `--yes --json`:
+   - `fs.renameSync(FROM, TO)` (or shell `mv` for EXDEV)
+   - Rewrites `~/.claude/projects/<slug>/*.jsonl` for every affected slug
+   - Rewrites `~/.claude/history.jsonl` and `~/.claude/sessions/*.json`
 5. Prints `cd <TO> && claude --resume` for you to run
 
 See `SKILL.md` for the full workflow and CLI reference.

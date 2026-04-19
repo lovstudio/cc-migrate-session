@@ -1,14 +1,14 @@
 {
   "name": "@lovstudio/cc-mv",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Move a project folder AND migrate its Claude Code session history in one shot. Rewrites ~/.claude/projects/<slug>/*.jsonl, history.jsonl, and running-session records so `claude --resume` still works after the move.",
   "keywords": ["claude-code", "cli", "migration", "session", "mv", "move", "rename", "lovstudio"],
   "license": "MIT",
   "author": "mark <markshawn2020>",
-  "homepage": "https://github.com/lovstudio/cc-migrate-session",
+  "homepage": "https://github.com/lovstudio/cc-mv",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lovstudio/cc-migrate-session.git"
+    "url": "git+https://github.com/lovstudio/cc-mv.git"
   },
   "bin": {
     "cc-mv": "dist/cli.js",
