@@ -1,24 +1,27 @@
-# @lovstudio/cc-migrate-session
+# @lovstudio/cc-mv
 
-> Migrate Claude Code sessions when a project folder moves.
+> Move a project folder and migrate all its Claude Code state in one command.
 
-When you `mv /old/project /new/project`, Claude Code's `--resume` flag can no longer find your history. That's because CC keys sessions by a path-slug — so the old history is still on disk at `~/.claude/projects/<old-slug>/`, but CC looks in `<new-slug>/` and finds nothing.
+When you `mv /old/project /new/project`, `claude --resume` stops finding your history — CC keys its store by a path-slug, so sessions still sit at `~/.claude/projects/<old-slug>/` while CC looks in `<new-slug>/`.
 
-This tool fixes that:
-1. Copies `~/.claude/projects/<old-slug>/` → `<new-slug>/`
-2. Rewrites every `"cwd"` field inside the jsonl lines from `/old/project` → `/new/project`
+`cc-mv` does the move **and** migrates the state:
 
-After running, `cd /new/project && claude --resume` shows your full history.
+1. `mv FROM TO` on disk (`fs.renameSync` — instant, preserves mtime/perms; falls back to shell `mv` for cross-device)
+2. Rewrites `~/.claude/projects/<slug>/*.jsonl` — **including every sub-directory slug**
+3. Rewrites `~/.claude/history.jsonl` — the prompt up-arrow recall index
+4. Rewrites `~/.claude/sessions/<pid>.json` — running-session records
+
+After it runs, `cd TO && claude --resume` shows the full history.
 
 ## Install / Use
 
 Zero install — just run with `npx`:
 
 ```bash
-npx -y @lovstudio/cc-migrate-session /old/project /new/project
+npx -y @lovstudio/cc-mv /old/project /new/project
 ```
 
-It will show a preview and ask for confirmation. Add `--yes` to skip the prompt, or `--dry-run` to see what it would do without writing.
+It previews the plan and asks for confirmation. Add `--yes` to skip the prompt, or `--dry-run` to see what it would do without writing.
 
 ## Options
 
@@ -26,6 +29,7 @@ It will show a preview and ask for confirmation. Add `--yes` to skip the prompt,
 |------|---------|
 | `-y`, `--yes` | Skip interactive confirmation |
 | `--dry-run` | Print the plan, don't write |
+| `--no-mv` | Skip the filesystem mv (only migrate CC state — post-move recovery) |
 | `--json` | Machine-readable output (used by the CC skill) |
 | `--projects-dir <dir>` | Override `~/.claude/projects` |
 | `-h`, `--help` | Show help |
@@ -33,27 +37,42 @@ It will show a preview and ask for confirmation. Add `--yes` to skip the prompt,
 ## Examples
 
 ```bash
-# Interactive
-npx -y @lovstudio/cc-migrate-session ~/old-repo ~/new-repo
+# Move + migrate in one shot
+npx -y @lovstudio/cc-mv ~/old-repo ~/new-repo
 
-# Non-interactive, in a script
-npx -y @lovstudio/cc-migrate-session ~/old ~/new --yes
+# Post-move recovery (folder already moved externally — FROM doesn't exist on disk)
+npx -y @lovstudio/cc-mv /old /new --no-mv
 
-# Just tell me what would happen
-npx -y @lovstudio/cc-migrate-session /a /b --dry-run
+# Dry-run
+npx -y @lovstudio/cc-mv /a /b --dry-run
+```
+
+## Sub-directory handling
+
+If you've run CC in sub-directories of the project (`/old/pkg-a`, `/old/pkg-b`, ...), each has its own slug dir. `cc-mv` discovers and migrates them all in one pass.
+
+It works by listing `~/.claude/projects/` and matching any slug where `slug === <fromSlug>` or `slug.startsWith(<fromSlug> + "-")`. That catches FROM and all descendants without traversing your filesystem — fast and exact.
+
+## Backwards-compatible alias
+
+`cc-migrate-session` is also a bin in this package. Same code, but defaults to `--no-mv` (only migrates CC state, doesn't move anything on disk). Use it when the folder has already been moved externally and you just need CC to catch up.
+
+```bash
+npx -y @lovstudio/cc-migrate-session /old /new
 ```
 
 ## Safety
 
-- **Copy, don't move.** The old slug dir is never deleted. If anything goes wrong you still have your history.
+- **Copy, don't clobber.** Old slug dirs are never deleted. If anything goes wrong, the old state is still there.
+- `cc-mv` refuses if TO already exists on disk — no silent overwrite of the project folder.
+- When the destination slug dir already exists, session files are merged (conflicts overwrite); you'll get a warning.
 - Malformed jsonl lines are passed through unchanged.
-- Destination merge: if `<new-slug>/` already has jsonl files, conflicting names will be overwritten. You'll get a warning.
 
-Verify that `claude --resume` works from the new dir before running `rm -rf ~/.claude/projects/<old-slug>/`.
+Verify `claude --resume` works at the new location before `rm -rf ~/.claude/projects/<old-slug>*`.
 
 ## How it works
 
-Claude Code stores each session at:
+CC stores each session at:
 
 ```
 ~/.claude/projects/<slug>/<session-uuid>.jsonl
@@ -64,20 +83,20 @@ where `<slug>` is the project's absolute path with every non-`[A-Za-z0-9]` chara
 | Path | Slug |
 |------|------|
 | `/Users/mark/my-project` | `-Users-mark-my-project` |
-| `/Users/mark/.claude` | `-Users-mark--claude` (the `.` → `-`) |
-| `/Users/mark/@手工川` | `-Users-mark-----` (`@` plus 3 CJK chars) |
+| `/Users/mark/.claude` | `-Users-mark--claude` (`.` → `-`) |
+| `/Users/mark/@手工川` | `-Users-mark-----` (`@` + 3 CJK chars) |
 
-Each jsonl line also embeds `"cwd": "<absolute path>"`. Both the dir name **and** the per-line cwd must be updated for `--resume` to pick up the history — this tool does both.
+Each jsonl line also embeds `"cwd": "<absolute path>"`. Both the dir name **and** the per-line cwd must be updated — plus the other two indices (`history.jsonl`, `sessions/*.json`) that also carry absolute paths. This tool handles all four places.
 
 ## Companion CC skill
 
-The `skill/lovstudio-cc-migrate-session/` dir in this repo is a Claude Code skill (`lovstudio:cc-migrate-session`). Symlink it:
+The `skill/lovstudio-cc-mv/` dir in this repo is a Claude Code skill. Symlink it:
 
 ```bash
-ln -s $(pwd)/skill/lovstudio-cc-migrate-session ~/.claude/skills/lovstudio-cc-migrate-session
+ln -s $(pwd)/skill/lovstudio-cc-mv ~/.claude/skills/lovstudio-cc-mv
 ```
 
-Then when you tell Claude "I moved this project to /new/path" or "this project used to be at /old/path", CC will auto-invoke this CLI for you.
+Then when you tell Claude "move this project to /new/path" or "I moved the folder and --resume is gone", CC will auto-invoke this CLI.
 
 ## License
 
